@@ -1,0 +1,6 @@
+logs/
+dataset/
+*.sqsh
+utils/centroid_plan_2.py
+utils/newdatac2.py
+utils/newdataCO2.py
