@@ -6,4 +6,3 @@ utils/newdatac2.py
 utils/newdataCO2.py
 scripts/models
 *.ckpt
-test.py
