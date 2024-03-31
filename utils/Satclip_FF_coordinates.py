@@ -52,7 +52,7 @@ class DataProcessor:
         coordinates_std = coordinates_tensor.std(dim=0)
 
         coordinates_std[coordinates_std == 0] = 1e-6
-        # Normalize centroid tensor
+        # Normalize coordinate tensor
         normalized_coordinates_tensor = (coordinates_tensor - coordinates_mean) / coordinates_std
         print("Normalized Coordinates Tensor shape:",normalized_coordinates_tensor.shape)
 
@@ -150,7 +150,7 @@ class TemporalConvNet(nn.Module):
 
 
 class ConcatenatedNN(nn.Module):
-    def __init__(self, input_size, hidden_size, num_classes, sensor, centroid, num_layers=2, sequence_length=20):
+    def __init__(self, input_size, hidden_size, num_classes, sensor, coordinate, num_layers=2, sequence_length=20):
         super(ConcatenatedNN, self).__init__()
         self.conv1d_1 = nn.Conv1d(1, hidden_size, kernel_size=3, stride=1, padding=1).double()
         self.relu1 = nn.ReLU()
@@ -169,14 +169,14 @@ class ConcatenatedNN(nn.Module):
         self.relu4 = nn.ReLU()
         self.fc2 = nn.Linear(256, num_classes)
 
-        self.centroid = centroid
+        self.coordinate = coordinate
         self.sensor = sensor
 
-    def forward(self, x_sensor, x_centroid):
+    def forward(self, x_sensor, x_coordinate):
 
-        output_centroid = self.centroid(x_centroid.double())
+        output_coordinate = self.coordinate(x_coordinate.double())
         output_sensor = self.sensor(x_sensor.permute(0, 2, 1))
-        x = torch.cat([output_sensor, output_centroid], dim=1)
+        x = torch.cat([output_sensor, output_coordinate], dim=1)
 
         N = x.shape[0]
 
@@ -341,7 +341,7 @@ if __name__ == "__main__":
     testing_data = load_data("/netscratch/mudraje/spatial-explicit-ml/dataset/five_test.nc")
     satclip_path = "/netscratch/mudraje/spatial-explicit-ml/satclip-resnet50-l40.ckpt" 
 
-    # Preprocess centroid data
+    # Preprocess coordinate data
     coordinate_tensor_combined = DataProcessor.process_coordinates_data(training_data)
 
     # Preprocess input data
@@ -361,7 +361,7 @@ if __name__ == "__main__":
     hidden_size = 20
     sensor_model = TemporalConvNet(features, hidden_size, timesteps, num_classes)
 
-    # Initialize centroid models
+    # Initialize coordinate models
     
     coordinates_model = load_satclip_model(satclip_path)
 
@@ -385,12 +385,12 @@ if __name__ == "__main__":
     train_data, val_data, Y_train, Y_val = train_test_split(combined_datasets, Y_combined_tensor, test_size=0.2, random_state=42)
 
     # Unzip the datasets
-    X_train_sensor, X_train_centroid = zip(*train_data)
-    X_val_sensor, X_val_centroid = zip(*val_data)
+    X_train_sensor, X_train_coordinate = zip(*train_data)
+    X_val_sensor, X_val_coordinate = zip(*val_data)
 
-    # Combine the sensor and centroid data into a tuple for each set
-    train_dataset_combined = data_utils.TensorDataset(torch.stack(X_train_sensor), torch.stack(X_train_centroid), Y_train)
-    val_dataset_combined = data_utils.TensorDataset(torch.stack(X_val_sensor), torch.stack(X_val_centroid), Y_val)
+    # Combine the sensor and coordinate data into a tuple for each set
+    train_dataset_combined = data_utils.TensorDataset(torch.stack(X_train_sensor), torch.stack(X_train_coordinate), Y_train)
+    val_dataset_combined = data_utils.TensorDataset(torch.stack(X_val_sensor), torch.stack(X_val_coordinate), Y_val)
 
     # Create data loaders for training and validation
     batch_size = 50

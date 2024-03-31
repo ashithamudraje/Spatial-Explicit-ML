@@ -259,7 +259,7 @@ class ConcatenatedNN(nn.Module):
 
     def forward(self, x_sensor, x_centroid):
 
-        output_centroid = self.centroid(x_centroid.double())
+        output_centroid = self.centroid(x_centroid)
         output_sensor = self.sensor(x_sensor.permute(0, 2, 1))
         x = torch.cat([output_sensor, output_centroid], dim=1)
 
@@ -505,7 +505,7 @@ if __name__ == "__main__":
         # Train and evaluate the model
         print(f'-------------------------------------------------EXPERIMENT {i+1}:-------------------------------')
         num_epochs = 20
-        patience = 5
+        patience = 6
         save_path = f'/netscratch/mudraje/spatial-explicit-ml/scripts/models/centroid/FFcentroid_best_model_exp_{i+1}.pt'  # Define save path for this experiment
         model = train_and_evaluate_model(concatenated_model, sensor_model, centroid_model, train_loader_combined, val_loader_combined, criterion_concatenated,
                              optimizer_concatenated, num_epochs, patience, save_path)

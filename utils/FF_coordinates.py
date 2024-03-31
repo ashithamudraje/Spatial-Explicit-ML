@@ -22,7 +22,7 @@ def load_data(data_path):
     return data
 
 
-class CoordinatesNN(nn.Module):  # Define the feedforward neural network for centroid processing
+class CoordinatesNN(nn.Module):  # Define the feedforward neural network for coordinate processing
     def __init__(self, input_size, hidden_size, output_size):
         super(CoordinatesNN, self).__init__()
         self.fc1 = nn.Linear(input_size, hidden_size)
@@ -59,7 +59,7 @@ class DataProcessor:
         coordinates_std = coordinates_tensor.std(dim=0)
 
         coordinates_std[coordinates_std == 0] = 1e-6
-        # Normalize centroid tensor
+        # Normalize coordinate tensor
         normalized_coordinates_tensor = (coordinates_tensor - coordinates_mean) / coordinates_std
         print("Normalized Coordinates Tensor shape:",normalized_coordinates_tensor.shape)
 
@@ -175,7 +175,7 @@ class CNN(nn.Module):
 
 
 class ConcatenatedNN(nn.Module):
-    def __init__(self, input_size, hidden_size, num_classes, sensor, centroid, num_layers=2, sequence_length=20):
+    def __init__(self, input_size, hidden_size, num_classes, sensor, coordinate, num_layers=2, sequence_length=20):
         super(ConcatenatedNN, self).__init__()
         self.conv1d_1 = nn.Conv1d(1, hidden_size, kernel_size=3, stride=1, padding=1).double()
         self.relu1 = nn.ReLU()
@@ -194,14 +194,14 @@ class ConcatenatedNN(nn.Module):
         self.relu4 = nn.ReLU()
         self.fc2 = nn.Linear(256, num_classes)
 
-        self.centroid = centroid
+        self.coordinate = coordinate
         self.sensor = sensor
 
-    def forward(self, x_sensor, x_centroid):
+    def forward(self, x_sensor, x_coordinate):
 
-        output_centroid = self.centroid(x_centroid.double())
+        output_coordinate = self.coordinate(x_coordinate)
         output_sensor = self.sensor(x_sensor.permute(0, 2, 1))
-        x = torch.cat([output_sensor, output_centroid], dim=1)
+        x = torch.cat([output_sensor, output_coordinate], dim=1)
 
         N = x.shape[0]
 
@@ -365,7 +365,7 @@ if __name__ == "__main__":
     training_data = load_data("/netscratch/mudraje/spatial-explicit-ml/dataset/full_train.nc")
     testing_data = load_data("/netscratch/mudraje/spatial-explicit-ml/dataset/five_test.nc")
 
-    # Preprocess centroid data
+    # Preprocess coordinate data
     coordinate_tensor_combined = DataProcessor.process_coordinates_data(training_data)
 
     # Preprocess input data
@@ -395,7 +395,7 @@ if __name__ == "__main__":
 
 
     # Concatenate models
-    input_size_concatenated = 218
+    input_size_concatenated = 128
     num_classes_concatenated = 2
     hidden_size_concatenated = 10
     concatenated_model = ConcatenatedNN(input_size_concatenated, hidden_size_concatenated, num_classes_concatenated, sensor_model, coordinates_model )
@@ -414,12 +414,12 @@ if __name__ == "__main__":
     train_data, val_data, Y_train, Y_val = train_test_split(combined_datasets, Y_combined_tensor, test_size=0.2, random_state=42)
 
     # Unzip the datasets
-    X_train_sensor, X_train_centroid = zip(*train_data)
-    X_val_sensor, X_val_centroid = zip(*val_data)
+    X_train_sensor, X_train_coordinate = zip(*train_data)
+    X_val_sensor, X_val_coordinate = zip(*val_data)
 
-    # Combine the sensor and centroid data into a tuple for each set
-    train_dataset_combined = data_utils.TensorDataset(torch.stack(X_train_sensor), torch.stack(X_train_centroid), Y_train)
-    val_dataset_combined = data_utils.TensorDataset(torch.stack(X_val_sensor), torch.stack(X_val_centroid), Y_val)
+    # Combine the sensor and coordinate data into a tuple for each set
+    train_dataset_combined = data_utils.TensorDataset(torch.stack(X_train_sensor), torch.stack(X_train_coordinate), Y_train)
+    val_dataset_combined = data_utils.TensorDataset(torch.stack(X_val_sensor), torch.stack(X_val_coordinate), Y_val)
 
     # Create data loaders for training and validation
     batch_size = 50
@@ -445,7 +445,7 @@ if __name__ == "__main__":
         # Train and evaluate the model
         print(f'--------------------------EXPERIMENT {i+1}:--------------------------------')
         num_epochs = 20
-        patience = 5
+        patience = 6
         save_path = f'/netscratch/mudraje/spatial-explicit-ml/scripts/models/coordinates/FFcoordinates_best_model_exp_{i+1}.pt'  # Define save path for this experiment
         model = train_and_evaluate_model(concatenated_model, sensor_model, coordinates_model, train_loader_combined, val_loader_combined, criterion_concatenated,
                              optimizer_concatenated, num_epochs, patience, save_path)
