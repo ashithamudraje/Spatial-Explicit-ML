@@ -1,6 +1,6 @@
 #!/bin/bash
 NOW=$( date '+%F-%H-%M-%S' )
-JOB_NAME=SatclipFFcentroid
+JOB_NAME=FFcentroid
 EXP_DIR=/netscratch/mudraje/spatial-explicit-ml/logs/
 
 srun -K\
@@ -16,4 +16,4 @@ srun -K\
     --container-workdir="`pwd`" \
     --time 12:00:00 \
     --output="${EXP_DIR}/${NOW}-${JOB_NAME}.log" \
-    python -u /netscratch/mudraje/spatial-explicit-ml/utils/Satclip_FF_centorid.py \
+    python -u /netscratch/mudraje/spatial-explicit-ml/utils/FF_centroid.py \
